@@ -48,9 +48,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$VERSION" \
+          gh release create "v$VERSION" \
             "nutest-${VERSION}.zip" \
             --repo "$GITHUB_REPOSITORY" \
             --target main \
-            --title "$VERSION" \
+            --title "v$VERSION" \
             --generate-notes
