@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.2.3). Used for the git tag, release title and archive folder name."
+        required: true
+        type: string
+
+# Least-privilege default
+permissions: {}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # required to create the release and upload the asset
+
+    steps:
+      - name: Validate version input
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$ ]]; then
+            echo "::error::Invalid version '$VERSION'. Only letters, numbers, dots, dashes and underscores are allowed." >&2
+            exit 1
+          fi
+
+      - name: Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Create release archive
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          git archive --format=zip --prefix="nutest-${VERSION}/" -o "nutest-${VERSION}.zip" HEAD
+
+      - name: Create release and upload asset
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$VERSION" \
+            "nutest-${VERSION}.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target main \
+            --title "$VERSION" \
+            --generate-notes
